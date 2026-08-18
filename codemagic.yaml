@@ -10,7 +10,7 @@ workflows:
           keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000
       - name: Generate Gradle Wrapper
         script: |
-          gradle wrapper --gradle-version 8.9
+          gradle wrapper --gradle-version 8.13
       - name: Build debug APK
         script: |
           ./gradlew assembleDebug
