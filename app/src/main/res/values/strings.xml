@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Rastreamento GPS</string>
+    <string name="service_notification_title">Rastreamento GPS Ativo</string>
+    <string name="service_notification_desc">Registrando localização em segundo plano.</string>
+    <string name="geofence_notification_title">Alerta de Geofence</string>
+</resources>
+

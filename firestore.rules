@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Regra para perfil de usuários
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Regra para dispositivos registrados
+    match /devices/{deviceId} {
+      // Leitura permitida para o proprietário ou contas explicitamente autorizadas
+      allow read: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        request.auth.token.email in resource.data.authorizedEmails
+      );
+      
+      // Criação e atualização permitidas para o proprietário do dispositivo
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Regra para subcoleção de histórico de localizações
+    match /devices/{deviceId}/locations/{locationId} {
+      // Leitura permitida para quem tem acesso ao dispositivo pai
+      allow read: if request.auth != null && (
+        get(/databases/$(database)/documents/devices/$(deviceId)).data.ownerId == request.auth.uid ||
+        request.auth.token.email in get(/databases/$(database)/documents/devices/$(deviceId)).data.authorizedEmails
+      );
+
+      // Gravação permitida apenas para o dispositivo proprietário
+      allow create: if request.auth != null &&
+        get(/databases/$(database)/documents/devices/$(deviceId)).data.ownerId == request.auth.uid;
+      allow update, delete: if false; // Histórico é imutável
+    }
+
+    // Regra para convites temporários de 10 minutos
+    match /invites/{inviteId} {
+      // Leitura permitida para resgate se autenticado
+      allow read: if request.auth != null;
+      
+      // Criação e exclusão permitidas para o criador do convite
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Regra para autorizações e permissões concedidas
+    match /device_access/{accessId} {
+      allow read: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.viewerId == request.auth.uid
+      );
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.viewerId == request.auth.uid
+      );
+    }
+  }
+}

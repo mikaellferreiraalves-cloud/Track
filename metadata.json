@@ -1,0 +1,6 @@
+{
+  "name": "Rastreamento GPS",
+  "description": "Aplicativo completo de rastreamento GPS com login Google, monitoramento multi-dispositivo seguro e consentido, mapa em tempo real, sincronização em nuvem e histórico remoto.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
