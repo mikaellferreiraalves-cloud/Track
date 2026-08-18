@@ -279,7 +279,16 @@ class DeviceSyncManager(
     private fun getBatteryStatus(): Pair<Int, Boolean> {
         return try {
             val ifilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-            val batteryStatus = context.registerReceiver(null, ifilter)
+            val batteryStatus = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                androidx.core.content.ContextCompat.registerReceiver(
+                    context,
+                    null,
+                    ifilter,
+                    androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+                )
+            } else {
+                context.registerReceiver(null, ifilter)
+            }
             val level = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: 100
             val scale = batteryStatus?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: 100
             val status = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
@@ -287,7 +296,7 @@ class DeviceSyncManager(
                     status == BatteryManager.BATTERY_STATUS_FULL
             val percent = if (level >= 0 && scale > 0) ((level / scale.toFloat()) * 100).toInt() else 100
             Pair(percent, isCharging)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Pair(100, false)
         }
     }

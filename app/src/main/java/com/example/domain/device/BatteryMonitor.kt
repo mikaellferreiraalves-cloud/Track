@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -23,9 +24,18 @@ class BatteryMonitor(private val context: Context) {
     fun getCurrentBatteryState(): BatteryState {
         return try {
             val intentFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-            val batteryIntent = context.registerReceiver(null, intentFilter)
+            val batteryIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.registerReceiver(
+                    context,
+                    null,
+                    intentFilter,
+                    ContextCompat.RECEIVER_NOT_EXPORTED
+                )
+            } else {
+                context.registerReceiver(null, intentFilter)
+            }
             parseBatteryIntent(batteryIntent)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.w("BatteryMonitor", "Failed to read battery state: ${e.message}")
             BatteryState()
         }
@@ -34,9 +44,13 @@ class BatteryMonitor(private val context: Context) {
     fun observeBatteryState(): Flow<BatteryState> = callbackFlow {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == Intent.ACTION_BATTERY_CHANGED) {
-                    val state = parseBatteryIntent(intent)
-                    trySend(state)
+                try {
+                    if (intent?.action == Intent.ACTION_BATTERY_CHANGED) {
+                        val state = parseBatteryIntent(intent)
+                        trySend(state)
+                    }
+                } catch (e: Throwable) {
+                    Log.w("BatteryMonitor", "Error handling battery broadcast: ${e.message}")
                 }
             }
         }
@@ -48,10 +62,19 @@ class BatteryMonitor(private val context: Context) {
         }
 
         try {
-            context.registerReceiver(receiver, filter)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.registerReceiver(
+                    context,
+                    receiver,
+                    filter,
+                    ContextCompat.RECEIVER_NOT_EXPORTED
+                )
+            } else {
+                context.registerReceiver(receiver, filter)
+            }
             // Emit initial state
             trySend(getCurrentBatteryState())
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e("BatteryMonitor", "Failed to register battery receiver: ${e.message}")
             trySend(BatteryState())
         }
@@ -59,7 +82,7 @@ class BatteryMonitor(private val context: Context) {
         awaitClose {
             try {
                 context.unregisterReceiver(receiver)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.w("BatteryMonitor", "Error unregistering battery receiver: ${e.message}")
             }
         }
