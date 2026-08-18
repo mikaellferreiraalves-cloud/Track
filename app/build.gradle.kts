@@ -15,7 +15,7 @@ android {
   defaultConfig {
     applicationId = "com.aistudio.gpstracker.rqnx"
     minSdk = 24
-    targetSdk = 35
+    targetSdk = 36
     versionCode = 1
     versionName = "1.0"
 
